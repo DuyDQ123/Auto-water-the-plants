@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Control System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .sensor-card {
+            transition: all 0.3s ease;
+        }
+        .pump-btn {
+            width: 150px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <h1 class="text-center mb-4">Hệ Thống Tưới Cây Tự Động</h1>
+        
+        <div class="row g-4">
+            <!-- Temperature Card -->
+            <div class="col-md-6">
+                <div class="card sensor-card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Nhiệt Độ</h5>
+                        <h2 class="text-primary" id="temperature">-- °C</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Humidity Card -->
+            <div class="col-md-6">
+                <div class="card sensor-card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Độ Ẩm</h5>
+                        <h2 class="text-success" id="humidity">-- %</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pump Control -->
+        <div class="text-center mt-4">
+            <h3 class="mb-3">Điều Khiển Bơm</h3>
+            <button id="pumpToggle" class="btn btn-lg pump-btn btn-primary">
+                Đang tải...
+            </button>
+        </div>
+
+        <!-- Pump Statistics -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Thống Kê Hoạt Động Bơm</h5>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <p class="mb-1">Số lần BẬT</p>
+                        <h3 class="text-success" id="onCount">0</h3>
+                    </div>
+                    <div class="col-6">
+                        <p class="mb-1">Số lần TẮT</p>
+                        <h3 class="text-danger" id="offCount">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updateSensorData() {
+            fetch('/get_sensor_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('temperature').textContent = `${data.temperature} °C`;
+                    document.getElementById('humidity').textContent = `${data.humidity} %`;
+                    updatePumpButton(data.pump_state);
+                });
+        }
+
+        function updatePumpStats() {
+            fetch('/get_pump_stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('onCount').textContent = data.on_count;
+                    document.getElementById('offCount').textContent = data.off_count;
+                });
+        }
+
+        function updatePumpButton(isOn) {
+            const button = document.getElementById('pumpToggle');
+            button.textContent = isOn ? 'TẮT Bơm' : 'BẬT Bơm';
+            button.className = `btn btn-lg pump-btn ${isOn ? 'btn-danger' : 'btn-success'}`;
+        }
+
+        document.getElementById('pumpToggle').addEventListener('click', function() {
+            fetch('/toggle_pump', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                updatePumpButton(data.pump_state);
+                updatePumpStats();
+            });
+        });
+
+        // Update data every 2 seconds
+        setInterval(updateSensorData, 2000);
+        // Update stats every 5 seconds
+        setInterval(updatePumpStats, 5000);
+
+        // Initial updates
+        updateSensorData();
+        updatePumpStats();
+    </script>
+</body>
+</html>
